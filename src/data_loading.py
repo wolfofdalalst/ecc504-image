@@ -1,36 +1,63 @@
 import tensorflow as tf
-import matplotlib.pyplot as plt
+from typing import Tuple, Optional
 
-# Suppress TensorFlow logging for clarity
+# Suppress TensorFlow logging for clarity (uncomment to use)
 # import os
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
-def load_dataset(
-    data_dir, img_size=(180, 180), batch_size=32, validation_split=0.2, seed=42
+def load_datasets(
+    data_dir: str,
+    img_size: Optional[Tuple[int, int]] = None,
+    batch_size: Optional[int] = None,
+    validation_split: Optional[float] = None,
+    seed: Optional[int] = None,
 ):
-    """Load dataset from directory with training and validation split."""
-    train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    """Load dataset from directory with training and validation split.
+
+    Returns: (train_ds, val_ds)
+    """
+    # Lazy import to avoid circulars and allow overrides via args
+    try:
+        from config import Config  # type: ignore
+    except Exception:
+        class Config:  # fallback
+            IMG_SIZE = (224, 224)
+            BATCH_SIZE = 32
+            VALIDATION_SPLIT = 0.2
+            SEED = 42
+
+    img_size = img_size or Config.IMG_SIZE
+    batch_size = batch_size or Config.BATCH_SIZE
+    validation_split = validation_split or Config.VALIDATION_SPLIT
+    seed = seed or Config.SEED
+
+    # Use modern keras.utils API
+    image_ds_from_dir = tf.keras.utils.image_dataset_from_directory
+
+    train_ds = image_ds_from_dir(
         data_dir,
         validation_split=validation_split,
         subset="training",
         seed=seed,
         image_size=img_size,
         batch_size=batch_size,
+        label_mode="int",
     )
 
-    val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    val_ds = image_ds_from_dir(
         data_dir,
         validation_split=validation_split,
         subset="validation",
         seed=seed,
         image_size=img_size,
         batch_size=batch_size,
+        label_mode="int",
     )
 
-    AUTOTUNE = tf.data.AUTOTUNE
-    train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-    val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+    # Cache and shuffle here; leave prefetch to caller (after augmentation mapping)
+    train_ds = train_ds.cache().shuffle(1000, seed=seed, reshuffle_each_iteration=True)
+    val_ds = val_ds.cache()
 
     print(
         f"Dataset loaded. Train batches: {len(train_ds)}, Validation batches: {len(val_ds)}"
@@ -39,9 +66,9 @@ def load_dataset(
     return train_ds, val_ds
 
 
-def get_augmentation_pipeline():
+def get_augmentation():
     """Return a tf.keras.Sequential data augmentation pipeline."""
-    data_augmentation = tf.keras.Sequential(
+    return tf.keras.Sequential(
         [
             tf.keras.layers.RandomFlip("horizontal"),
             tf.keras.layers.RandomRotation(0.1),
@@ -49,11 +76,17 @@ def get_augmentation_pipeline():
         ],
         name="data_augmentation",
     )
-    return data_augmentation
 
 
-def visualize_augmentation(train_ds, data_augmentation, num_examples=5):
+# Backward-compatible alias
+get_augmentation_pipeline = get_augmentation
+
+
+def visualize_augmentation(train_ds, data_augmentation, num_examples: int = 5):
     """Visualize N augmented versions of a single image from dataset."""
+    import matplotlib.pyplot as plt  # local import to keep training light
+    import tensorflow as tf
+
     plt.figure(figsize=(12, 6))
     for images, _ in train_ds.take(1):
         sample_img = images[0]
@@ -67,15 +100,15 @@ def visualize_augmentation(train_ds, data_augmentation, num_examples=5):
 
 
 if __name__ == "__main__":
-    from config import CURRENT_SUBSET, IMG_SIZE, BATCH_SIZE, VALIDATION_SPLIT, SEED
+    from config import Config
 
-    train_dataset, val_dataset = load_dataset(
-        data_dir=CURRENT_SUBSET,
-        img_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        validation_split=VALIDATION_SPLIT,
-        seed=SEED,
+    train_dataset, val_dataset = load_datasets(
+        data_dir=Config.SUBSET_PATH,
+        img_size=Config.IMG_SIZE,
+        batch_size=Config.BATCH_SIZE,
+        validation_split=Config.VALIDATION_SPLIT,
+        seed=Config.SEED,
     )
 
-    augmentation_pipeline = get_augmentation_pipeline()
+    augmentation_pipeline = get_augmentation()
     visualize_augmentation(train_dataset, augmentation_pipeline, num_examples=5)
