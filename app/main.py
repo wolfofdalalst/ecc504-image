@@ -1,42 +1,51 @@
+import os
+import gdown
 import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
 
 MODEL_PATH = "outputs/models/cnn_scratch_best.keras"
-CLASS_NAMES = ['daisy', 'dandelion', 'roses', 'sunflowers', 'tulips']
+DRIVE_FILE_ID = "1bVRtDjG9BDrpobNQU65LmKAXt-gvNop1"
+CLASS_NAMES = ["daisy", "dandelion", "roses", "sunflowers", "tulips"]
 IMG_SIZE = (224, 224)
+
+os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+
+if not os.path.exists(MODEL_PATH):
+    with st.spinner("Downloading model weights..."):
+        gdown.download(
+            f"https://drive.google.com/uc?id={DRIVE_FILE_ID}", MODEL_PATH, quiet=False
+        )
+    st.success("Model downloaded successfully!")
+
 
 @st.cache_resource
 def load_model():
     model = tf.keras.models.load_model(MODEL_PATH)
     return model
 
+
 model = load_model()
 
 st.title("🌼 Flower Classification App")
 st.write("Upload a flower image, and the model will predict its category.")
 
-# Project attribution and quick info
-st.markdown("**Project work:** ECC504 - Artificial Intelligence and Machine Learning")
+st.markdown("**Project:** ECC504 - Artificial Intelligence and Machine Learning")
 st.markdown("**Author:** Ayush Gupta (23EC8065), NIT Durgapur")
 
-# Labels overview
 st.subheader("Labels this app can predict")
 st.write(", ".join([name.capitalize() for name in CLASS_NAMES]))
 
-# More insight about the project
 with st.expander("About this project", expanded=False):
     st.markdown(
         """
 - Task: 5-class flower image classification (Daisy, Dandelion, Roses, Sunflowers, Tulips)
-- Dataset: Local flower_photos dataset (see `data/flower_photos/`)
-- Model: Convolutional Neural Network trained from scratch (`outputs/models/cnn_scratch_best.keras`)
-- Input: 224×224 RGB; Output: softmax probabilities across 5 classes
-- UI: Upload an image to see the top-1 prediction, confidence, and a per-class probability chart
-- Notes: Results can vary with lighting/background; clearer, centered flowers help accuracy
-- Future work: Stronger augmentation, transfer learning (e.g., MobileNetV2), Grad-CAM explanations, on-device deployment
-        """
+- Dataset: TensorFlow Flowers
+- Model: CNN trained from scratch
+- Input: 224×224 RGB; Output: 5-class softmax
+- Future Work: Transfer learning, Grad-CAM, mobile deployment
+    """
     )
 
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
