@@ -17,6 +17,28 @@ model = load_model()
 st.title("🌼 Flower Classification App")
 st.write("Upload a flower image, and the model will predict its category.")
 
+# Project attribution and quick info
+st.markdown("**Project work:** ECC504 - Artificial Intelligence and Machine Learning")
+st.markdown("**Author:** Ayush Gupta (23EC8065), NIT Durgapur")
+
+# Labels overview
+st.subheader("Labels this app can predict")
+st.write(", ".join([name.capitalize() for name in CLASS_NAMES]))
+
+# More insight about the project
+with st.expander("About this project", expanded=False):
+    st.markdown(
+        """
+- Task: 5-class flower image classification (Daisy, Dandelion, Roses, Sunflowers, Tulips)
+- Dataset: Local flower_photos dataset (see `data/flower_photos/`)
+- Model: Convolutional Neural Network trained from scratch (`outputs/models/cnn_scratch_best.keras`)
+- Input: 224×224 RGB; Output: softmax probabilities across 5 classes
+- UI: Upload an image to see the top-1 prediction, confidence, and a per-class probability chart
+- Notes: Results can vary with lighting/background; clearer, centered flowers help accuracy
+- Future work: Stronger augmentation, transfer learning (e.g., MobileNetV2), Grad-CAM explanations, on-device deployment
+        """
+    )
+
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
