@@ -180,13 +180,11 @@ datasets/
 # Model files
 *.h5
 *.hdf5
-*.keras
 *.pb
 *.pth
 *.pt
 *.ckpt
 *.safetensors
-models/
 checkpoints/
 saved_models/
 weights/
@@ -194,7 +192,6 @@ weights/
 # Training logs and outputs
 logs/
 runs/
-outputs/
 tensorboard/
 wandb/
 mlruns/
